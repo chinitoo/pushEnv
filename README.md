@@ -1,4 +1,4 @@
-# 📦 **Pushenv — Secure, Encrypted .env Sync for Teams**
+# 📦 **PushEnv — Secure, Encrypted .env Sync for Teams**
 ### *Simple. Fast. Open Source.*
 
 Pushenv is a simple, end-to-end encrypted CLI for sharing `.env` files safely across your team — without ever storing secrets in Git or exposing plaintext to the cloud.
