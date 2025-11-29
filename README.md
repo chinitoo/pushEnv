@@ -11,6 +11,7 @@ Runs fully local. No accounts. No dashboard. No subscriptions.
 ## 🚀 Features
 
 - 🔐 **AES-256-GCM end-to-end encryption**  
+- 🚀 **Zero-file execution** - run commands with secrets injected directly into memory  
 - 🔑 **PBKDF2 passphrase-derived keys**  
   *(the passphrase is never stored; only a derived key is saved locally per device)*  
 - 🖥 **Each developer enters passphrase once per machine**  
@@ -77,6 +78,9 @@ pushenv push
 # Push a specific stage
 pushenv push --stage staging
 pushenv push --stage production
+# Or use short form:
+pushenv push -s staging
+pushenv push -s production
 ```
 
 This will:
@@ -106,6 +110,9 @@ pushenv pull
 # Pull a specific stage
 pushenv pull --stage staging
 pushenv pull --stage production
+# Or use short form:
+pushenv pull -s staging
+pushenv pull -s production
 ```
 
 They enter the shared passphrase once.
@@ -118,6 +125,39 @@ Then:
 - Stores the derived key locally so future pulls don't require the passphrase  
 
 Done. 🎉
+
+---
+
+### 5. Zero-File Execution (Advanced)
+
+Run commands with secrets injected directly into process memory — **no .env file ever touches disk**:
+
+```bash
+# Run with development secrets (default)
+pushenv run "npm start"
+
+# Run with production secrets
+pushenv run --stage production "npm start"
+# Or use short form:
+pushenv run -s production "npm start"
+
+# Preview what would be injected (dry run)
+pushenv run --stage production --dry-run "npm start"
+
+# Show variable names being injected
+pushenv run --stage production --verbose "npm start"
+# Or use short form:
+pushenv run -s production -v "npm start"
+
+# Combine options: stage + verbose + dry-run
+pushenv run -s production -v --dry-run "npm start"
+```
+
+This is the **most secure way** to use secrets:
+- Secrets exist only in process memory
+- No file to accidentally commit or leak
+- When the process exits, secrets are gone
+- Perfect for CI/CD and production deployments
 
 ---
 
@@ -179,8 +219,8 @@ pushenv init
 
 # Push all your stages
 pushenv push --stage development
-pushenv push --stage staging
-pushenv push --stage production
+pushenv push -s staging
+pushenv push -s production
 
 # Commit config to git
 git add .pushenv/config.json
@@ -194,11 +234,15 @@ Teammate:
 git clone <repo>
 cd repo
 
+# Check available stages first
+pushenv list-stages
+# Or use alias:
+pushenv ls
+
 # Pull the stage they need
 pushenv pull --stage development
-
-# Or check available stages first
-pushenv list-stages
+# Or use short form:
+pushenv pull -s development
 ```
 
 ---
@@ -208,11 +252,16 @@ pushenv list-stages
 | Command | Description |
 |--------|-------------|
 | `pushenv init` | Initialize project for Pushenv (with stage selection) |
-| `pushenv push` | Encrypt & upload `.env` (development by default) |
-| `pushenv push --stage <stage>` | Encrypt & upload specific stage |
-| `pushenv pull` | Download & decrypt `.env` (development by default) |
-| `pushenv pull --stage <stage>` | Download & decrypt specific stage |
-| `pushenv list-stages` | Show all configured stages and their status |
+| `pushenv push` | Encrypt & upload `.env` (default: `development` stage) |
+| `pushenv push -s <stage>`<br/>`pushenv push --stage <stage>` | Encrypt & upload specific stage |
+| `pushenv pull` | Download & decrypt `.env` (default: `development` stage) |
+| `pushenv pull -s <stage>`<br/>`pushenv pull --stage <stage>` | Download & decrypt specific stage |
+| `pushenv run <command>` | Run command with secrets injected (no file created, default: `development` stage) |
+| `pushenv run -s <stage> <command>`<br/>`pushenv run --stage <stage> <command>` | Run with specific stage secrets |
+| `pushenv run --dry-run <command>` | Preview what would be injected without running |
+| `pushenv run -v <command>`<br/>`pushenv run --verbose <command>` | Show variable names being injected |
+| `pushenv run -s <stage> -v --dry-run <command>` | Options can be combined (stage + verbose + dry-run) |
+| `pushenv list-stages`<br/>`pushenv ls` | Show all configured stages and their status (local & cloud) |
 | *(coming soon)* `pushenv diff` | Compare local vs remote |
 
 ---
@@ -241,6 +290,7 @@ If git-crypt is too annoying…
 ### v0.2.0 ✅
 - ✅ Multi-env (`development`, `staging`, `production`)  
 - ✅ `list-stages` command
+- ✅ `run` command - zero-file execution
 
 ### v0.3.0  
 - Env diff  
