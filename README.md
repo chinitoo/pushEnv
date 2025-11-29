@@ -5,7 +5,7 @@
 [![npm downloads](https://img.shields.io/npm/dw/pushenv.svg)](https://www.npmjs.com/package/pushenv)
 [![license](https://img.shields.io/npm/l/pushenv.svg)](./LICENSE)
 
-> **TL;DR:** Sync encrypted `.env` files across your team safely — no plaintext secrets in Git, no SaaS lock-in. Just encryption + your own storage.
+> **TL;DR:** Sync encrypted `.env` files across your team safely — no plaintext secrets in Git, no SaaS lock-in. Just encryption.
 
 PushEnv solves the **core problem** developers face: **sharing `.env` files across teams without exposing secrets**. It's an open-source, end-to-end encrypted CLI that keeps your secrets safe — no plaintext in Git, Docker images, CI logs, or cloud storage.
 
@@ -76,7 +76,7 @@ pushenv push --stage production
 PushEnv will:
 - Read your `.env`
 - Encrypt locally
-- Upload the encrypted blob to your S3-compatible bucket
+- Upload the encrypted blob to cloud
 
 Secrets **never** leave your machine unencrypted.
 
@@ -143,7 +143,7 @@ pushenv run -s production -v --dry-run "npm start"
 ✔ Only derived AES key stored locally  
 ✔ AES-256-GCM authenticated encryption  
 ✔ PBKDF2 key derivation  
-✔ Encrypted blobs stored in **your** S3-compatible bucket  
+✔ Encrypted blobs stored in cloud
 ✔ Secrets decrypted locally only  
 ✔ Keyring stored per-user (`~/.pushenv/keys.json`)  
 
@@ -163,27 +163,6 @@ project/
 ~/.pushenv/
   keys.json
 ```
-
----
-
-## 🌩 S3-Compatible Storage Setup
-
-Set environment variables:
-
-```bash
-export R2_BUCKET="your-bucket"
-export R2_ENDPOINT="https://endpoint"
-export R2_ACCESS_KEY="..."
-export R2_SECRET_ACCESS_KEY="..."
-```
-
-Works with:
-- Cloudflare R2  
-- AWS S3  
-- MinIO  
-- Any S3-compatible storage  
-
----
 
 ## 📖 Commands
 
@@ -225,24 +204,13 @@ Perfect for:
 
 ## 🛣 Roadmap
 
-### v0.2.0 (done)
+### v0.1.5 (done)
 - Multi-env  
 - `list-stages`  
 - Zero-file execution  
 
-### v0.3.0
+### v0.1.6 (coming soon)
 - Env diff  
-- CI/CD recipes  
-- More tests  
-
-### v0.4.0
-- VSCode integration  
-- GitHub Action  
-
-### v1.0
-- Team key sharing  
-- Optional dashboard  
-- Desktop app  
 
 ---
 
