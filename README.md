@@ -125,6 +125,36 @@ Shows:
 
 ---
 
+### 5️⃣ Generate example .env file
+
+Create a safe example `.env` file with placeholder values that can be committed to Git:
+
+```bash
+# Generate example for development (default)
+pushenv example
+
+# Generate example for specific stage
+pushenv example --stage production
+pushenv example -s staging
+
+# Specify custom output path
+pushenv example --stage production -o .env.production.example
+```
+
+**What it does:**
+- Downloads and decrypts remote stage
+- Replaces all secret values with placeholders
+- Creates `.env.{stage}.example` file
+- Safe to commit to version control
+
+**Use cases:**
+- Document required environment variables
+- Onboard new team members
+- CI/CD setup documentation
+- Share variable structure without secrets
+
+---
+
 ## 🚀 Zero-File Execution (Advanced)
 
 **Optional feature:** Run commands with secrets injected directly into process memory — no `.env` file written to disk.
@@ -206,6 +236,9 @@ project/
 | `pushenv list-stages`<br/>`pushenv ls` | List all configured stages and their status |
 | `pushenv diff` | Compare local `.env` with remote (default: `development` stage) |
 | `pushenv diff -s <stage>`<br/>`pushenv diff --stage <stage>` | Compare specific stage |
+| `pushenv example` | Generate example `.env` file with placeholders (default: `development` stage) |
+| `pushenv example -s <stage>`<br/>`pushenv example --stage <stage>` | Generate example for specific stage |
+| `pushenv example -o <path>`<br/>`pushenv example --output <path>` | Specify output file path |
 
 ---
 
@@ -231,11 +264,12 @@ Perfect for:
 
 ## 🛣 Roadmap
 
-### v0.1.7 (done)
+### v0.1.8 (done)
 - Multi-env  
 - `list-stages`  
 - Zero-file execution  
 - `diff` command - compare local vs remote
+- `example` command - generate safe example .env files
 
 ---
 

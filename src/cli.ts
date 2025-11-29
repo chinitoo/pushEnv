@@ -6,6 +6,7 @@ import { pullCommand } from "./commands/pull.js";
 import { listStagesCommand } from "./commands/list-stages.js";
 import { runCommand } from "./commands/run.js";
 import { diffCommand } from "./commands/diff.js";
+import { exampleCommand } from "./commands/example.js";
 import { PACKAGE_VERSION } from "./config/version.js";
 import { DEFAULT_STAGE } from "./utils/config.js";
 
@@ -103,6 +104,22 @@ program
   .action(async (options: { stage: string }) => {
     try {
       await diffCommand(options.stage);
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error: ${error.message}`);
+      }
+      process.exit(1);
+    }
+  });
+
+program
+  .command("example")
+  .description("Generate example .env file with placeholder values (safe to commit)")
+  .option("-s, --stage <stage>", "Stage/environment to use", DEFAULT_STAGE)
+  .option("-o, --output <path>", "Output file path (default: .env.{stage}.example)")
+  .action(async (options: { stage: string; output?: string }) => {
+    try {
+      await exampleCommand(options.stage, options.output);
     } catch (error) {
       if (error instanceof Error) {
         console.error(`Error: ${error.message}`);
