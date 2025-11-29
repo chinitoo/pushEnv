@@ -5,6 +5,7 @@ import { pushCommand } from "./commands/push.js";
 import { pullCommand } from "./commands/pull.js";
 import { listStagesCommand } from "./commands/list-stages.js";
 import { runCommand } from "./commands/run.js";
+import { diffCommand } from "./commands/diff.js";
 import { PACKAGE_VERSION } from "./config/version.js";
 import { DEFAULT_STAGE } from "./utils/config.js";
 
@@ -87,6 +88,21 @@ program
         verbose: options.verbose,
         dryRun: options.dryRun,
       });
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error: ${error.message}`);
+      }
+      process.exit(1);
+    }
+  });
+
+program
+  .command("diff")
+  .description("Compare local .env with remote (encrypted) version")
+  .option("-s, --stage <stage>", "Stage/environment to compare", DEFAULT_STAGE)
+  .action(async (options: { stage: string }) => {
+    try {
+      await diffCommand(options.stage);
     } catch (error) {
       if (error instanceof Error) {
         console.error(`Error: ${error.message}`);

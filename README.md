@@ -99,6 +99,32 @@ After entering passphrase once:
 
 ---
 
+### 4️⃣ Compare local vs remote
+
+See what's different between your local `.env` and the remote version before pulling:
+
+```bash
+# Compare development (default)
+pushenv diff
+
+# Compare specific stage
+pushenv diff --stage production
+pushenv diff -s staging
+```
+
+Shows:
+- **Added** variables (in remote, not local)
+- **Removed** variables (in local, not remote)
+- **Changed** values (same key, different value)
+- **Unchanged** count
+
+**Safety features:**
+- Verifies local file stage matches command parameter
+- Warns if stage mismatch detected
+- Handles files without PushEnv headers
+
+---
+
 ## 🚀 Zero-File Execution (Advanced)
 
 **Optional feature:** Run commands with secrets injected directly into process memory — no `.env` file written to disk.
@@ -178,7 +204,8 @@ project/
 | `pushenv run --dry-run <command>` | Preview what would be injected without running |
 | `pushenv run -v <command>`<br/>`pushenv run --verbose <command>` | Show variable names being injected |
 | `pushenv list-stages`<br/>`pushenv ls` | List all configured stages and their status |
-| *(coming soon)* `pushenv diff` | Compare local vs remote |
+| `pushenv diff` | Compare local `.env` with remote (default: `development` stage) |
+| `pushenv diff -s <stage>`<br/>`pushenv diff --stage <stage>` | Compare specific stage |
 
 ---
 
@@ -204,13 +231,11 @@ Perfect for:
 
 ## 🛣 Roadmap
 
-### v0.1.6 (done)
+### v0.1.7 (done)
 - Multi-env  
 - `list-stages`  
 - Zero-file execution  
-
-### v0.1.7 (coming soon)
-- Env diff  
+- `diff` command - compare local vs remote
 
 ---
 
