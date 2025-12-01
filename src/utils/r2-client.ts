@@ -3,9 +3,25 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 import { getR2Credentials } from "../config/r2-credentials.js";
 import { DEFAULT_STAGE } from "./config.js";
+
+/**
+ * Version metadata stored in metadata.json
+ */
+export interface VersionInfo {
+  version: number;
+  timestamp: string;
+  message: string;
+  key: string; // R2 key for this version
+}
+
+export interface VersionMetadata {
+  versions: VersionInfo[];
+  latest: number;
+}
 
 let client: S3Client | null = null;
 
@@ -43,6 +59,20 @@ function getR2Key(projectId: string, stage: string = DEFAULT_STAGE): string {
  */
 function getLegacyR2Key(projectId: string): string {
   return `${projectId}/env.encrypted`;
+}
+
+/**
+ * Get the R2 key for a specific version
+ */
+function getVersionKey(projectId: string, stage: string, version: number): string {
+  return `${projectId}/${stage}/v${version}/env.encrypted`;
+}
+
+/**
+ * Get the metadata key for a project and stage
+ */
+function getMetadataKey(projectId: string, stage: string): string {
+  return `${projectId}/${stage}/metadata.json`;
 }
 
 /**
@@ -158,4 +188,121 @@ export async function existsInR2(
     }
     return false;
   }
+}
+
+/**
+ * Read version metadata from R2
+ */
+export async function readVersionMetadata(
+  projectId: string,
+  stage: string = DEFAULT_STAGE
+): Promise<VersionMetadata | null> {
+  const creds = getR2Credentials();
+  const client = getR2Client();
+  const metadataKey = getMetadataKey(projectId, stage);
+
+  try {
+    const command = new GetObjectCommand({
+      Bucket: creds.bucket,
+      Key: metadataKey,
+    });
+
+    const response = await client.send(command);
+    if (!response.Body) {
+      return null;
+    }
+
+    const content = await response.Body.transformToString();
+    return JSON.parse(content) as VersionMetadata;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Write version metadata to R2
+ */
+export async function writeVersionMetadata(
+  projectId: string,
+  stage: string,
+  metadata: VersionMetadata
+): Promise<void> {
+  const creds = getR2Credentials();
+  const client = getR2Client();
+  const metadataKey = getMetadataKey(projectId, stage);
+
+  const command = new PutObjectCommand({
+    Bucket: creds.bucket,
+    Key: metadataKey,
+    Body: JSON.stringify(metadata, null, 2),
+    ContentType: "application/json",
+  });
+
+  await client.send(command);
+}
+
+/**
+ * Upload a versioned encrypted file
+ */
+export async function uploadVersionedToR2(
+  projectId: string,
+  stage: string,
+  version: number,
+  encryptedData: string
+): Promise<void> {
+  const creds = getR2Credentials();
+  const client = getR2Client();
+  const versionKey = getVersionKey(projectId, stage, version);
+
+  const command = new PutObjectCommand({
+    Bucket: creds.bucket,
+    Key: versionKey,
+    Body: encryptedData,
+    ContentType: "application/octet-stream",
+  });
+
+  await client.send(command);
+}
+
+/**
+ * Download a specific version from R2
+ */
+export async function downloadVersionFromR2(
+  projectId: string,
+  stage: string,
+  version: number
+): Promise<string> {
+  const creds = getR2Credentials();
+  const client = getR2Client();
+  const versionKey = getVersionKey(projectId, stage, version);
+
+  const command = new GetObjectCommand({
+    Bucket: creds.bucket,
+    Key: versionKey,
+  });
+
+  const response = await client.send(command);
+  if (!response.Body) {
+    throw new Error(`Version ${version} not found`);
+  }
+
+  return await response.Body.transformToString();
+}
+
+/**
+ * Get the latest version number for a stage
+ */
+export async function getLatestVersion(
+  projectId: string,
+  stage: string = DEFAULT_STAGE
+): Promise<number> {
+  const metadata = await readVersionMetadata(projectId, stage);
+  if (!metadata) {
+    // Check if legacy file exists (no versioning yet)
+    if (await existsInR2(projectId, stage)) {
+      return 0; // Legacy version
+    }
+    return 0; // No versions
+  }
+  return metadata.latest;
 }

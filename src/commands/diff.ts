@@ -13,7 +13,12 @@ import {
   deriveKeyFromPassphrase,
   decrypt,
 } from "../utils/crypto.js";
-import { downloadFromR2, existsInR2 } from "../utils/r2-client.js";
+import {
+  downloadFromR2,
+  existsInR2,
+  downloadVersionFromR2,
+  readVersionMetadata,
+} from "../utils/r2-client.js";
 import { parseEnvContent } from "../utils/env-parser.js";
 
 export interface DiffResult {
@@ -142,8 +147,13 @@ function compareEnvs(
   return { added, removed, changed, unchanged };
 }
 
-export async function diffCommand(stage: string): Promise<void> {
-  console.log(chalk.cyan(`\n🔐 pushenv diff - Compare local vs remote (${stage})\n`));
+export interface DiffOptions {
+  version?: number | undefined;
+}
+
+export async function diffCommand(stage: string, options: DiffOptions = {}): Promise<void> {
+  const versionLabel = options.version ? ` (version ${options.version})` : " (latest)";
+  console.log(chalk.cyan(`\n🔐 pushenv diff - Compare local vs remote${versionLabel} (${stage})\n`));
 
   // Check if project is initialized
   if (!isProjectInitialized()) {
@@ -229,54 +239,97 @@ export async function diffCommand(stage: string): Promise<void> {
   }
   console.log(chalk.green("✓ Remote found"));
 
-  // Download and decrypt remote
-  console.log(chalk.gray("Downloading and decrypting remote..."));
+  // Download and decrypt remote (specific version or latest)
   let remoteContent: string;
+  let versionInfo: string = "";
+  let encryptedData: string;
 
-  try {
-    const encryptedData = await downloadFromR2(config.projectId, stage);
-
-    // Extract salt and decrypt
-    const firstColon = encryptedData.indexOf(":");
-    if (firstColon === -1) {
-      console.log(chalk.red("\n✗ Invalid encrypted data format."));
+  if (options.version) {
+    // Download specific version
+    console.log(chalk.gray(`Downloading version ${options.version}...`));
+    const metadata = await readVersionMetadata(config.projectId, stage);
+    if (!metadata) {
+      console.log(chalk.red(`\n✗ No version history found.`));
+      console.log(chalk.gray(`  This stage doesn't have versioning enabled yet.`));
       process.exit(1);
     }
 
-    const saltHex = encryptedData.slice(0, firstColon);
-    const actualEncryptedData = encryptedData.slice(firstColon + 1);
-    const salt = Buffer.from(saltHex, "hex");
-
-    // Get key for decryption
-    const keyEntry = getKeyEntry(config.projectId);
-    let keyBuffer: Buffer;
-
-    if (keyEntry) {
-      keyBuffer = Buffer.from(keyEntry.key, "base64");
-    } else {
-      // Need passphrase
-      const response = await inquirer.prompt<{ passphrase: string }>([
-        {
-          type: "password",
-          name: "passphrase",
-          message: "Enter the passphrase:",
-          mask: "*",
-        },
-      ]);
-
-      const { key } = deriveKeyFromPassphrase(response.passphrase, salt);
-      keyBuffer = key;
+    const versionExists = metadata.versions.some((v) => v.version === options.version);
+    if (!versionExists) {
+      console.log(chalk.red(`\n✗ Version ${options.version} not found.`));
+      console.log(chalk.gray(`  Available versions: ${metadata.versions.map((v) => v.version).join(", ")}`));
+      process.exit(1);
     }
 
+    const versionData = metadata.versions.find((v) => v.version === options.version)!;
+    versionInfo = ` (${versionData.message})`;
+
+    try {
+      encryptedData = await downloadVersionFromR2(config.projectId, stage, options.version);
+      console.log(chalk.green(`✓ Downloaded version ${options.version}`));
+    } catch (error) {
+      if (error instanceof Error) {
+        console.log(chalk.red(`\n✗ Failed to download version ${options.version}: ${error.message}`));
+      }
+      process.exit(1);
+    }
+  } else {
+    // Download latest
+    console.log(chalk.gray("Downloading latest remote..."));
+    try {
+      encryptedData = await downloadFromR2(config.projectId, stage);
+      console.log(chalk.green("✓ Downloaded latest"));
+    } catch (error) {
+      if (error instanceof Error) {
+        console.log(chalk.red(`\n✗ Download failed: ${error.message}`));
+      }
+      process.exit(1);
+    }
+  }
+
+  // Extract salt and decrypt (common for both version and latest)
+  console.log(chalk.gray("Decrypting..."));
+  const firstColon = encryptedData.indexOf(":");
+  if (firstColon === -1) {
+    console.log(chalk.red("\n✗ Invalid encrypted data format."));
+    process.exit(1);
+  }
+
+  const saltHex = encryptedData.slice(0, firstColon);
+  const actualEncryptedData = encryptedData.slice(firstColon + 1);
+  const salt = Buffer.from(saltHex, "hex");
+
+  // Get key for decryption
+  const keyEntry = getKeyEntry(config.projectId);
+  let keyBuffer: Buffer;
+
+  if (keyEntry) {
+    keyBuffer = Buffer.from(keyEntry.key, "base64");
+  } else {
+    // Need passphrase
+    const response = await inquirer.prompt<{ passphrase: string }>([
+      {
+        type: "password",
+        name: "passphrase",
+        message: "Enter the passphrase:",
+        mask: "*",
+      },
+    ]);
+
+    const { key } = deriveKeyFromPassphrase(response.passphrase, salt);
+    keyBuffer = key;
+  }
+
+  try {
     const decrypted = decrypt(actualEncryptedData, keyBuffer);
     remoteContent = decrypted;
-    console.log(chalk.green("✓ Remote decrypted"));
+    console.log(chalk.green("✓ Decrypted successfully"));
   } catch (error) {
     if (error instanceof Error) {
       if (error.message.includes("Unsupported state") || error.message.includes("auth")) {
         console.log(chalk.red("\n✗ Decryption failed: Incorrect passphrase or key."));
       } else {
-        console.log(chalk.red(`\n✗ Failed to decrypt remote: ${error.message}`));
+        console.log(chalk.red(`\n✗ Failed to decrypt: ${error.message}`));
       }
     }
     process.exit(1);
@@ -298,6 +351,9 @@ export async function diffCommand(stage: string): Promise<void> {
   console.log();
   console.log(chalk.cyan("═".repeat(60)));
   console.log(chalk.cyan.bold("  Diff Results"));
+  if (versionInfo) {
+    console.log(chalk.gray(`  Comparing with version ${options.version}${versionInfo}`));
+  }
   console.log(chalk.cyan("═".repeat(60)));
   console.log();
 

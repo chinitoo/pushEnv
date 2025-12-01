@@ -6,6 +6,8 @@ import { pullCommand } from "./commands/pull.js";
 import { listStagesCommand } from "./commands/list-stages.js";
 import { runCommand } from "./commands/run.js";
 import { diffCommand } from "./commands/diff.js";
+import { historyCommand } from "./commands/history.js";
+import { rollbackCommand } from "./commands/rollback.js";
 import { exampleCommand } from "./commands/example.js";
 import { PACKAGE_VERSION } from "./config/version.js";
 import { DEFAULT_STAGE } from "./utils/config.js";
@@ -35,9 +37,14 @@ program
   .command("push")
   .description("Encrypt and upload your .env to the cloud")
   .option("-s, --stage <stage>", "Stage/environment to push", DEFAULT_STAGE)
-  .action(async (options: { stage: string }) => {
+  .option("-m, --message <message>", "Message for this version")
+  .option("-f, --force", "Force push even if no changes detected", false)
+  .action(async (options: { stage: string; message?: string; force?: boolean }) => {
     try {
-      await pushCommand(options.stage);
+      await pushCommand(options.stage, {
+        message: options.message,
+        force: options.force,
+      });
     } catch (error) {
       if (error instanceof Error) {
         console.error(`Error: ${error.message}`);
@@ -101,9 +108,55 @@ program
   .command("diff")
   .description("Compare local .env with remote (encrypted) version")
   .option("-s, --stage <stage>", "Stage/environment to compare", DEFAULT_STAGE)
+  .option("-v, --version <version>", "Compare with specific version number")
+  .action(async (options: { stage: string; version?: string }) => {
+    try {
+      const version = options.version ? parseInt(options.version, 10) : undefined;
+      if (options.version && isNaN(version!)) {
+        console.error("Error: Version must be a number");
+        process.exit(1);
+      }
+      await diffCommand(options.stage, { version });
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error: ${error.message}`);
+      }
+      process.exit(1);
+    }
+  });
+
+program
+  .command("history")
+  .description("Show version history for a stage")
+  .option("-s, --stage <stage>", "Stage/environment to show history for", DEFAULT_STAGE)
   .action(async (options: { stage: string }) => {
     try {
-      await diffCommand(options.stage);
+      await historyCommand(options.stage);
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error: ${error.message}`);
+      }
+      process.exit(1);
+    }
+  });
+
+program
+  .command("rollback")
+  .description("Restore a previous version (creates new version with rollback data)")
+  .option("-s, --stage <stage>", "Stage/environment to rollback", DEFAULT_STAGE)
+  .option("-v, --version <version>", "Version number to rollback to (required)")
+  .action(async (options: { stage: string; version?: string }) => {
+    try {
+      if (!options.version) {
+        console.error("Error: Version number is required. Use --version <number>");
+        process.exit(1);
+      }
+      const version = parseInt(options.version, 10);
+      if (isNaN(version)) {
+        console.error("Error: Version must be a number");
+        process.exit(1);
+      }
+      await rollbackCommand(options.stage, version);
     } catch (error) {
       if (error instanceof Error) {
         console.error(`Error: ${error.message}`);

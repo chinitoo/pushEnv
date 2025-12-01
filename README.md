@@ -17,6 +17,9 @@ Runs fully local. No accounts. No dashboards. No subscriptions.
 ## 🚀 Features
 
 - 🚀 **Zero-file execution** — run commands with secrets injected directly into memory, no `.env` files ever written to disk  
+- 📜 **Built-in version history** — every push creates a new, timestamped version with an optional message (like Git for your `.env`)  
+- ⏪ **Safe rollbacks** — restore any previous version of a stage with a single command (with extra guardrails for production)  
+- 🔍 **Diff any version** — compare your local `.env` with the latest remote or with a specific historical version before you pull or roll back  
 - 🔐 **AES-256-GCM end-to-end encryption** — secrets encrypted before leaving your machine  
 - 🔑 **PBKDF2 passphrase-derived keys** — passphrase never stored, only derived key  
 - 🌲 **Multi-environment support** — manage `development`, `staging`, `production` separately  
@@ -44,6 +47,13 @@ npm link
 ---
 
 ## 🛠 Quick Start
+
+### 🤝 Who is this for?
+
+- **Solo developers** who want better secret hygiene without running another SaaS dashboard  
+- **Small teams** who just want a **simple “push / pull” workflow** that works across laptops and CI  
+
+You can get from “zero” to “secure `.env` synced for the whole team” in **under 5 minutes**:
 
 ### 1️⃣ Initialize
 
@@ -101,7 +111,7 @@ After entering passphrase once:
 
 ### 4️⃣ Compare local vs remote
 
-See what's different between your local `.env` and the remote version before pulling:
+See what's different between your local `.env` and the remote version **before pulling** or rolling back:
 
 ```bash
 # Compare development (default)
@@ -125,7 +135,35 @@ Shows:
 
 ---
 
-### 5️⃣ Generate example .env file
+### 5️⃣ Browse history & roll back (versioning)
+
+Every `pushenv push` creates a new version with a timestamp and message:
+
+```bash
+# Show version history for a stage
+pushenv history
+pushenv history --stage production
+
+# Push with a custom message (great for rollouts)
+pushenv push -m "Add STRIPE_WEBHOOK_SECRET for billing rollout"
+pushenv push --stage staging -m "Rotate JWT_SECRET"
+
+# Diff against a specific historical version before rolling back
+pushenv diff --stage production --version 3
+
+# Roll back production to a previous version (creates a new version with rollback message)
+pushenv rollback --stage production --version 3
+```
+
+This makes it easy to:
+
+- Track how your secrets changed across rollouts  
+- Safely undo a bad deploy by restoring a known-good `.env`  
+- Audit who changed what (when paired with Git history around `pushenv` usage)  
+
+---
+
+### 6️⃣ Generate example .env file
 
 Create a safe example `.env` file with placeholder values that can be committed to Git:
 
@@ -225,8 +263,9 @@ project/
 | Command | Description |
 |--------|-------------|
 | `pushenv init` | Initialize project (configure stages and passphrase) |
-| `pushenv push` | Encrypt & upload `.env` (default: `development` stage) |
-| `pushenv push -s <stage>`<br/>`pushenv push --stage <stage>` | Encrypt & upload specific stage |
+| `pushenv push` | Encrypt & upload `.env` (default: `development` stage, creates a new version) |
+| `pushenv push -s <stage>`<br/>`pushenv push --stage <stage>` | Encrypt & upload specific stage (creates a new version) |
+| `pushenv push -m "<message>"` | Push with a custom version message |
 | `pushenv pull` | Download & decrypt `.env` (default: `development` stage) |
 | `pushenv pull -s <stage>`<br/>`pushenv pull --stage <stage>` | Download & decrypt specific stage |
 | `pushenv run <command>` | Run command with secrets in memory (default: `development` stage) |
@@ -234,8 +273,12 @@ project/
 | `pushenv run --dry-run <command>` | Preview what would be injected without running |
 | `pushenv run -v <command>`<br/>`pushenv run --verbose <command>` | Show variable names being injected |
 | `pushenv list-stages`<br/>`pushenv ls` | List all configured stages and their status |
-| `pushenv diff` | Compare local `.env` with remote (default: `development` stage) |
-| `pushenv diff -s <stage>`<br/>`pushenv diff --stage <stage>` | Compare specific stage |
+| `pushenv diff` | Compare local `.env` with latest remote (default: `development` stage) |
+| `pushenv diff -s <stage>`<br/>`pushenv diff --stage <stage>` | Compare specific stage (latest) |
+| `pushenv diff --stage <stage> --version <N>` | Compare local `.env` with a specific historical version |
+| `pushenv history` | Show version history for the default stage |
+| `pushenv history -s <stage>`<br/>`pushenv history --stage <stage>` | Show version history for a specific stage |
+| `pushenv rollback --stage <stage> --version <N>` | Create a new version that restores a previous one (safe rollback) |
 | `pushenv example` | Generate example `.env` file with placeholders (default: `development` stage) |
 | `pushenv example -s <stage>`<br/>`pushenv example --stage <stage>` | Generate example for specific stage |
 | `pushenv example -o <path>`<br/>`pushenv example --output <path>` | Specify output file path |
@@ -262,20 +305,26 @@ Perfect for:
 
 ---
 
-## 🛣 Roadmap
+## 🛣 Roadmap / Recent
 
-### v0.1.8 (done)
+### v0.2.x
+- Versioned pushes with metadata (message + timestamp)  
+- `history` command — browse per-stage `.env` history  
+- Version-aware `diff` — compare against any historical version  
+- `rollback` command — safe rollbacks that still preserve full history  
+
+### v0.1.8
 - Multi-env  
 - `list-stages`  
 - Zero-file execution  
-- `diff` command - compare local vs remote
+- `diff` command - compare local vs remote  
 - `example` command - generate safe example .env files
 
 ---
 
 ## ❤️ Contributing
 
-PRs welcome!
+PRs welcome!  
 
 ---
 
