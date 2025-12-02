@@ -16,18 +16,30 @@ Runs fully local. No accounts. No dashboards. No subscriptions.
 
 ## 🚀 Features
 
-- 🚀 **Zero-file execution** — run commands with secrets injected directly into memory, no `.env` files ever written to disk  
-- 📜 **Built-in version history** — every push creates a new, timestamped version with an optional message (like Git for your `.env`)  
-- ⏪ **Safe rollbacks** — restore any previous version of a stage with a single command (with extra guardrails for production)  
-- 🔍 **Diff any version** — compare your local `.env` with the latest remote or with a specific historical version before you pull or roll back  
+### Core Security
 - 🔐 **AES-256-GCM end-to-end encryption** — secrets encrypted before leaving your machine  
 - 🔑 **PBKDF2 passphrase-derived keys** — passphrase never stored, only derived key  
-- 🌲 **Multi-environment support** — manage `development`, `staging`, `production` separately  
-- 💾 **Works with any S3-compatible storage** — Cloudflare R2, AWS S3, MinIO, etc.  
-- 🖥 **One-time passphrase per machine** — enter once, key stored securely  
-- 📁 **Per-project configuration** — `.pushenv/config.json` (safe to commit)  
-- 💻 **Per-device keyring** — `~/.pushenv/keys.json` (private, never commit)  
 - 🔓 **Secrets never sent in plaintext** — encrypted end-to-end  
+- 🖥 **One-time passphrase per machine** — enter once, key stored securely  
+- 💻 **Per-device keyring** — `~/.pushenv/keys.json` (private, never commit)  
+
+### Environment Management
+- 🌲 **Multi-environment support** — manage `development`, `staging`, `production` separately  
+- ➕ **Add stages on-the-fly** — add new environments without reinitializing (`add-stage` command)  
+- 🛡️ **Smart file naming** — automatic `.env.{stage}` suggestions prevent accidental secret mixing  
+- 📋 **Stage overview** — list all configured stages and their status  
+
+### Version Control & History
+- 📜 **Built-in version history** — every push creates a new, timestamped version with an optional message (like Git for your `.env`)  
+- 🔍 **Diff any version** — compare your local `.env` with the latest remote or with a specific historical version before you pull or roll back  
+- ⏪ **Safe rollbacks** — restore any previous version of a stage with a single command (with extra guardrails for production)  
+- 📝 **Version messages** — annotate each push with custom messages for better tracking  
+
+### Advanced Features
+- 🚀 **Zero-file execution** — run commands with secrets injected directly into memory, no `.env` files ever written to disk  
+- 📄 **Example file generation** — create safe `.env.example` files with placeholders for version control  
+- 💾 **Works with any S3-compatible storage** — Cloudflare R2, AWS S3, MinIO, etc.  
+- 📁 **Per-project configuration** — `.pushenv/config.json` (safe to commit)  
 - 📝 **Fully open-source, no vendor lock-in**
 
 ---
@@ -321,20 +333,47 @@ Perfect for:
 
 ---
 
-## 🛣 Roadmap / Recent
+## 🎉 What's New in v1.0.0
 
-### v0.2.x
-- Versioned pushes with metadata (message + timestamp)  
-- `history` command — browse per-stage `.env` history  
-- Version-aware `diff` — compare against any historical version  
-- `rollback` command — safe rollbacks that still preserve full history  
+### Major Features
+✅ **Add-Stage Command** — Add new environments without reinitializing  
+✅ **Smart Initialization** — Auto-suggests `.env.{stage}` and offers to rename plain `.env` files  
+✅ **Complete Version Control** — History, diff, and rollback for all stages  
+✅ **Zero-File Execution** — Run commands with secrets in memory only  
+✅ **Example File Generation** — Create safe `.env.example` files  
+✅ **Production Safeguards** — Extra confirmations for production operations  
 
-### v0.1.8
-- Multi-env  
-- `list-stages`  
-- Zero-file execution  
-- `diff` command - compare local vs remote  
-- `example` command - generate safe example .env files
+### All Features Since v0.1.0
+- Multi-environment support (development, staging, production)
+- Versioned pushes with custom messages
+- Full history tracking per stage
+- Version-aware diff command
+- Safe rollback mechanism
+- Zero-file execution mode
+- Stage management commands
+- Smart file naming and safety warnings
+
+**Ready for production use!** 🚀
+
+---
+
+## 🛣 Roadmap
+
+### Planned Features
+- 🔄 **Team collaboration** — audit logs showing who pushed what and when  
+- 🔔 **Webhooks** — notify on env changes (Slack, Discord, etc.)  
+- 🔍 **Secret scanning** — detect accidentally committed secrets  
+- 🌐 **Web UI** — optional self-hosted dashboard for viewing history  
+- 🔐 **Key rotation** — safely rotate encryption keys  
+- 📦 **Import/Export** — backup and restore entire project configurations  
+
+### Under Consideration
+- Support for custom stage names beyond development/staging/production
+- Integration with popular secret managers (Vault, AWS Secrets Manager)
+- Git hooks for automatic push/pull on branch switches
+- Mobile app for viewing (not editing) environment status
+
+**Want to contribute?** Check out our issues or suggest new features!
 
 ---
 
