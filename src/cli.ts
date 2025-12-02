@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { initCommand } from "./commands/init.js";
+import { addStageCommand } from "./commands/add-stage.js";
 import { pushCommand } from "./commands/push.js";
 import { pullCommand } from "./commands/pull.js";
 import { listStagesCommand } from "./commands/list-stages.js";
@@ -25,6 +26,20 @@ program
   .action(async () => {
     try {
       await initCommand();
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error: ${error.message}`);
+      }
+      process.exit(1);
+    }
+  });
+
+program
+  .command("add-stage")
+  .description("Add a new stage/environment to an existing project")
+  .action(async () => {
+    try {
+      await addStageCommand();
     } catch (error) {
       if (error instanceof Error) {
         console.error(`Error: ${error.message}`);

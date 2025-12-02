@@ -63,8 +63,13 @@ pushenv init
 
 You'll choose:
 - environments (dev, staging, prod)
-- file paths for each env
+- file paths for each env (defaults to `.env.{stage}` for safety)
 - passphrase (team secret)
+
+**Safety feature:** If you try to use plain `.env` for a specific stage, pushenv will:
+- Warn you about the risks
+- Offer to automatically rename it to `.env.{stage}`
+- Help you avoid accidentally pushing wrong secrets to wrong environments
 
 Creates:
 
@@ -72,6 +77,16 @@ Creates:
 .pushenv/config.json      # safe to commit
 ~/.pushenv/keys.json      # device keyring (private)
 ```
+
+**💡 Adding stages later:**
+
+Already initialized but need to add production or staging? No problem!
+
+```bash
+pushenv add-stage
+```
+
+This adds new stages without losing your existing configuration or project ID.
 
 ---
 
@@ -263,6 +278,7 @@ project/
 | Command | Description |
 |--------|-------------|
 | `pushenv init` | Initialize project (configure stages and passphrase) |
+| `pushenv add-stage` | Add a new stage/environment to existing project (no reinit needed) |
 | `pushenv push` | Encrypt & upload `.env` (default: `development` stage, creates a new version) |
 | `pushenv push -s <stage>`<br/>`pushenv push --stage <stage>` | Encrypt & upload specific stage (creates a new version) |
 | `pushenv push -m "<message>"` | Push with a custom version message |
