@@ -1,5 +1,7 @@
 import { z } from "zod";
 import chalk from "chalk";
+import { config, type ConfigOptions } from "./config.js";
+import { generateTypes, type GenerateTypesOptions } from "./generate-types.js";
 
 export interface ValidateOptions {
   schema: z.ZodObject<any>;
@@ -189,5 +191,83 @@ export function validateOrThrow<T extends z.ZodObject<any>>(
 ): z.infer<T> {
   const result = validate({ schema, throwOnError: true });
   return result.data!;
+}
+
+export interface ValidateEnvOptions<T extends z.ZodObject<any>> {
+  schema: T;
+  path?: string;              // .env file path (default: ".env")
+  override?: boolean;         // override existing process.env (default: false)
+  debug?: boolean;            // log debug info (default: false)
+  generateTypes?: boolean | Partial<GenerateTypesOptions>; // Auto-generate types (default: true in development)
+}
+
+/**
+ * Load, validate, and optionally generate types for environment variables in one call
+ * 
+ * This is a convenience function that combines config(), validateOrThrow(), and generateTypes()
+ * into a single unified API. Perfect for TypeScript users who want full type safety.
+ * 
+ * @param options - Validation options with Zod schema
+ * @returns Typed and validated environment data
+ * 
+ * @example
+ * ```typescript
+ * import { validateEnv, z } from 'pushenv';
+ * 
+ * const env = validateEnv({
+ *   schema: z.object({
+ *     PORT: z.coerce.number(),
+ *     DATABASE_URL: z.string().url(),
+ *     NODE_ENV: z.enum(['development', 'production', 'test']),
+ *   }),
+ *   generateTypes: true,  // optional, defaults to true in dev
+ * });
+ * 
+ * env.PORT;        // number ✓ Fully typed!
+ * env.DATABASE_URL // string ✓ Validated URL!
+ * env.NODE_ENV     // 'development' | 'production' | 'test' ✓
+ * ```
+ */
+export function validateEnv<T extends z.ZodObject<any>>(
+  options: ValidateEnvOptions<T>
+): z.infer<T> {
+  const {
+    schema,
+    path = ".env",
+    override = false,
+    debug = false,
+    generateTypes: shouldGenerateTypes = true, // default to true
+  } = options;
+
+  // 1. Load .env file
+  const configResult = config({
+    path,
+    override,
+    debug,
+  });
+
+  if (configResult.error && debug) {
+    console.warn(chalk.yellow(`[pushenv] Warning: ${configResult.error.message}`));
+    console.warn(chalk.gray("[pushenv] Continuing with existing environment variables..."));
+  }
+
+  // 2. Validate environment variables
+  const env = validateOrThrow(schema);
+
+  // 3. Generate TypeScript types if enabled
+  if (shouldGenerateTypes) {
+    const typeGenOptions: Partial<GenerateTypesOptions> = 
+      typeof shouldGenerateTypes === 'object' 
+        ? shouldGenerateTypes 
+        : {};
+
+    generateTypes({
+      schema,
+      silent: !debug,
+      ...typeGenOptions,
+    });
+  }
+
+  return env;
 }
 

@@ -24,14 +24,15 @@
  * 
  * @example Named imports (no separate zod install needed!)
  * ```typescript
- * import { config, validateOrThrow, z } from 'pushenv';
+ * import { validateEnv, z } from 'pushenv';
  * 
- * config();
- * 
- * const env = validateOrThrow(z.object({
- *   PORT: z.coerce.number(),
- *   DATABASE_URL: z.string().url(),
- * }));
+ * // One call: load + validate + generate types!
+ * const env = validateEnv({
+ *   schema: z.object({
+ *     PORT: z.coerce.number(),
+ *     DATABASE_URL: z.string().url(),
+ *   })
+ * });
  * 
  * env.PORT;        // number ✓ Fully typed!
  * env.DATABASE_URL // string ✓ Validated URL!
@@ -61,9 +62,11 @@ import { config, type ConfigOptions, type ConfigResult } from "./lib/config.js";
 import { 
   validate, 
   validateOrThrow,
+  validateEnv,
   type ValidateOptions, 
   type ValidateResult,
-  type ValidationError 
+  type ValidationError,
+  type ValidateEnvOptions
 } from "./lib/validate.js";
 import {
   generateTypes,
@@ -80,6 +83,7 @@ export {
   config, 
   validate, 
   validateOrThrow,
+  validateEnv,
   generateTypes,
   generateTypesFromSchema,
   type ConfigOptions,
@@ -87,6 +91,7 @@ export {
   type ValidateOptions,
   type ValidateResult,
   type ValidationError,
+  type ValidateEnvOptions,
   type GenerateTypesOptions,
   type GenerateTypesResult
 };
@@ -96,6 +101,7 @@ export default {
   config,
   validate,
   validateOrThrow,
+  validateEnv,
   generateTypes,
   generateTypesFromSchema,
 };

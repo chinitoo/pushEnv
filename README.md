@@ -20,18 +20,24 @@ const dbUrl = process.env.DB_URL;   // Could be missing! 💥
 
 ### After (PushEnv)
 ```typescript
-import { config, validateOrThrow, z } from 'pushenv';
+// config/env.ts - Define once
+import { validateEnv, z } from 'pushenv';
 
-const env = validateOrThrow(z.object({
-  PORT: z.coerce.number(),
-  DB_URL: z.string().url(),
-}));
+export const env = validateEnv({
+  schema: z.object({
+    PORT: z.coerce.number(),
+    DB_URL: z.string().url(),
+  })
+});
+
+// server.ts - Use everywhere with full types!
+import { env } from './config/env';
 
 env.PORT;    // number ✓ Fully typed!
 env.DB_URL;  // string ✓ Validated URL!
 ```
 
-**2 lines of code → massive upgrade.** Catch errors at startup, not in production.
+**One config file → full type safety everywhere.** Catch errors at startup, not in production.
 
 ---
 
@@ -229,26 +235,105 @@ console.log('✓ All environment variables are valid!');
 
 ### Type-Safe Validation
 
-Get fully typed environment variables:
+Get fully typed and validated environment variables:
+
+```typescript
+import { validateEnv, z } from 'pushenv';
+
+// One call: load + validate + type generation
+const env = validateEnv({
+  schema: z.object({
+    PORT: z.coerce.number(),                    // Coerces string → number
+    DATABASE_URL: z.string().url(),             // Validates URL format
+    REDIS_URL: z.string().url().optional(),     // Optional URL
+  })
+});
+
+// env is now fully typed! TypeScript knows all the fields
+const port = env.PORT;              // number (not string!)
+const dbUrl = env.DATABASE_URL;     // string (validated URL)
+const redisUrl = env.REDIS_URL;     // string | undefined
+```
+
+### Best Practice: Export env for Your Entire Project 🎯
+
+**Recommended pattern** - Create a central config file and export the validated env:
+
+```typescript
+// src/config/env.ts
+import { validateEnv, z } from 'pushenv';
+
+export const env = validateEnv({
+  schema: z.object({
+    // Server
+    PORT: z.coerce.number().default(3000),
+    NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+    
+    // Database
+    DATABASE_URL: z.string().url(),
+    DB_POOL_SIZE: z.coerce.number().default(10),
+    
+    // Cache & Features
+    REDIS_URL: z.string().url().optional(),
+    ENABLE_CACHE: z.coerce.boolean().default(false),
+    
+    // Secrets
+    JWT_SECRET: z.string().min(32),
+    API_KEY: z.string().optional(),
+    
+    // Logging
+    LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+  }),
+  generateTypes: process.env.NODE_ENV !== 'production',
+});
+
+// Optional: Export type for use in other files
+export type Env = typeof env;
+```
+
+**Then use throughout your application:**
+
+```typescript
+// src/server.ts
+import { env } from './config/env';
+
+app.listen(env.PORT, () => {
+  console.log(`Server running on port ${env.PORT}`);
+});
+
+// src/database.ts
+import { env } from './config/env';
+
+const db = connectDB({
+  url: env.DATABASE_URL,
+  poolSize: env.DB_POOL_SIZE,
+});
+
+// src/cache.ts
+import { env } from './config/env';
+
+if (env.ENABLE_CACHE && env.REDIS_URL) {
+  initRedis(env.REDIS_URL);
+}
+```
+
+**Why this is better:**
+- ✅ **Real coerced values** - `env.PORT` is actually a `number`, not a string
+- ✅ **Single source of truth** - Import from one place, validated once at startup
+- ✅ **Full type safety** - TypeScript autocomplete everywhere
+- ✅ **Fails fast** - App crashes at startup if validation fails, not during requests
+- ✅ **Easy to test** - Mock the env object in tests
+
+**Alternative: Separate steps** (if you need more control):
 
 ```typescript
 import { config, validateOrThrow, z } from 'pushenv';
 
 config();
-
-const envSchema = z.object({
-  PORT: z.string(),
+const env = validateOrThrow(z.object({
+  PORT: z.coerce.number(),
   DATABASE_URL: z.string().url(),
-  REDIS_URL: z.string().url().optional(),
-});
-
-// Returns typed data or throws
-const env = validateOrThrow(envSchema);
-
-// env is now fully typed! TypeScript knows all the fields
-const port = parseInt(env.PORT);
-const dbUrl = env.DATABASE_URL;
-const redisUrl = env.REDIS_URL; // string | undefined
+}));
 ```
 
 ### Production-Ready Pattern
@@ -256,33 +341,41 @@ const redisUrl = env.REDIS_URL; // string | undefined
 Recommended pattern for production applications:
 
 ```typescript
-import { config, validateOrThrow, z } from 'pushenv';
+// src/config/env.ts - Create once, import everywhere
+import { validateEnv, z } from 'pushenv';
 
-function loadEnv() {
-  // Load .env (ignores if not found - uses existing env vars)
-  config();
-
-  // Define required environment
-  const schema = z.object({
+export const env = validateEnv({
+  schema: z.object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-    PORT: z.string().regex(/^\d+$/).default('3000'),
+    PORT: z.coerce.number().default(3000),
     DATABASE_URL: z.string().url(),
     REDIS_URL: z.string().url().optional(),
     JWT_SECRET: z.string().min(32),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
-  });
+  }),
+  generateTypes: process.env.NODE_ENV !== 'production', // Only in dev
+});
 
-  // Validate and return typed config
-  return validateOrThrow(schema);
-}
+export type Env = typeof env;
 
-// Use at app startup
+// src/index.ts - App entry point
+import { env } from './config/env';
+
+console.log('✓ Configuration loaded and validated');
+
+// Start your app with validated, typed config
+startServer(env.PORT, env.DATABASE_URL);
+
+// If validation fails, app crashes here with helpful error messages!
+```
+
+**Error handling at startup** (optional):
+
+```typescript
+// src/index.ts
 try {
-  const env = loadEnv();
-  console.log('✓ Configuration loaded and validated');
-  
-  // Start your app with validated config
-  startServer(env.PORT, env.DATABASE_URL);
+  const { env } = await import('./config/env');
+  startServer(env.PORT);
 } catch (error) {
   console.error('❌ Configuration error:', error.message);
   process.exit(1);
@@ -312,32 +405,45 @@ if (!result.success) {
 
 ### TypeScript Type Generation 🔥
 
-**New!** Automatically generate TypeScript type definitions for `process.env`:
+**New!** The easiest way - use `validateEnv()` which does everything in one call:
+
+```typescript
+import { validateEnv, z } from 'pushenv';
+
+// One call does it all: load + validate + generate types!
+const env = validateEnv({
+  schema: z.object({
+    PORT: z.coerce.number(),              // Will be typed as number
+    DATABASE_URL: z.string().url(),       // Will be typed as string
+    NODE_ENV: z.enum(['development', 'production', 'test']), // Union type!
+    API_KEY: z.string().optional(),       // Optional string
+  }),
+  generateTypes: true,  // Auto-generates pushenv-env.d.ts
+});
+
+// Now use the validated env object - fully typed!
+env.PORT;        // number ✓
+env.DATABASE_URL // string ✓
+env.NODE_ENV     // 'development' | 'production' | 'test' ✓
+env.API_KEY      // string | undefined ✓
+```
+
+**Advanced: Separate steps** (if you need more control):
 
 ```typescript
 import { config, generateTypes, z } from 'pushenv';
 
-// Define your schema with proper types
 const schema = z.object({
-  PORT: z.coerce.number(),              // Will be typed as number
-  DATABASE_URL: z.string().url(),       // Will be typed as string
-  NODE_ENV: z.enum(['development', 'production', 'test']), // Union type!
-  API_KEY: z.string().optional(),       // Optional string
+  PORT: z.coerce.number(),
+  DATABASE_URL: z.string().url(),
 });
 
-// Load config
 config();
-
-// Generate TypeScript types from schema
 generateTypes({ schema });
-// Creates: pushenv-env.d.ts
-
-// Now TypeScript knows your env vars!
-const port: number = process.env.PORT;  // ✓ Fully typed!
-const env: 'development' | 'production' | 'test' = process.env.NODE_ENV;
+// Creates: pushenv-env.d.ts for process.env typing
 ```
 
-**Auto-generate on config:**
+**Using config() with schema** (alternative approach):
 
 ```typescript
 import { config, z } from 'pushenv';
@@ -350,7 +456,7 @@ config({
   generateTypes: true,  // Generate types automatically!
 });
 
-// pushenv-env.d.ts created and added to .gitignore
+// Note: config() loads but doesn't validate. Use validateEnv() for validation!
 ```
 
 **CLI command:**
@@ -432,6 +538,29 @@ function validateOrThrow<T extends z.ZodObject<any>>(
 ): z.infer<T>;
 ```
 
+#### `validateEnv(options)` 🔥
+
+**Recommended!** All-in-one function that loads `.env`, validates, and generates types.
+
+```typescript
+interface ValidateEnvOptions<T extends z.ZodObject<any>> {
+  schema: T;
+  path?: string;              // .env file path (default: ".env")
+  override?: boolean;         // override existing process.env (default: false)
+  debug?: boolean;            // log debug info (default: false)
+  generateTypes?: boolean | Partial<GenerateTypesOptions>; // Auto-generate types (default: true)
+}
+
+function validateEnv<T extends z.ZodObject<any>>(
+  options: ValidateEnvOptions<T>
+): z.infer<T>;
+```
+
+**Perfect for:**
+- TypeScript projects wanting full type safety
+- One-liner setup with validation + types
+- Production apps that need startup validation
+
 #### `generateTypes(options)`
 
 Generate TypeScript type definitions from a Zod schema.
@@ -457,9 +586,11 @@ interface GenerateTypesResult {
 - Supports enums, unions, literals, and more
 - Automatically adds output file to `.gitignore`
 
-### Example Project
+### Example Projects
 
-See [`examples/library-usage.js`](examples/library-usage.js) for comprehensive usage examples.
+See the [`examples/`](examples/) directory for comprehensive usage examples:
+- **[export-pattern.ts](examples/export-pattern.ts)** - Recommended pattern for production apps ⭐
+- More examples coming soon!
 
 ---
 
@@ -769,6 +900,8 @@ project/
 
 ### 🔥 Library Features (NEW!)
 ✅ **Drop-in dotenv replacement** — `pushenv.config()` works just like `dotenv.config()`  
+✅ **Unified `validateEnv()` API** — Load + validate + generate types in one call  
+✅ **Export pattern** — Create once, import everywhere with full type safety  
 ✅ **Zod validation** — Validate env vars at startup with schemas  
 ✅ **TypeScript type generation** — Auto-generate `.d.ts` files from schemas  
 ✅ **Type-safe process.env** — Full IDE autocomplete and type checking  

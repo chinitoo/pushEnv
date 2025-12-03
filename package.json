@@ -1,6 +1,6 @@
 {
   "name": "pushenv",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "type": "module",
   "description": "Pushenv is a simple, end-to-end encrypted CLI for sharing .env files safely across your team. Use as a library (dotenv alternative with validation) or CLI for team sync.",
   "main": "./dist/index.js",
@@ -41,7 +41,8 @@
     "node": ">=18"
   },
   "files": [
-    "dist"
+    "dist",
+    "examples"
   ],
   "dependencies": {
     "@aws-sdk/client-s3": "^3.940.0",
